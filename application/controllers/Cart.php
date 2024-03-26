@@ -7,27 +7,27 @@ class Cart extends CI_Controller {
 function __construct()
 		{
 			parent::__construct();
-			if($this->session->userdata('username') == ""){
-           		$nomeja = $this->session->userdata('nomeja');
-  				redirect('login/logout/'.$nomeja);
-        	}
+			
 			$this->load->model('Item_model');
 			$this->load->model('cekstatus_model');
 			$this->load->helper('cookie');
 			$session = $this->cekstatus_model->cek();
-
-  		// if ($session['status'] == 'Payment') {
-  		// 	$nomeja = $this->session->userdata('nomeja');
-  		// 	redirect('login/logout/'.$nomeja);
-  		// }else 
-  		if($session['status'] == 'Cleaning'){
-  			$nomeja = $this->session->userdata('nomeja');
-  			redirect('login/logout/'.$nomeja);
-  		}
-  		if($session['id_table'] != $this->session->userdata('nomeja')){
-  			$nomeja = $this->session->userdata('nomeja');
-  			redirect('login/log_out/'.$nomeja);
-  		}
+			if($this->session->userdata('username') == ""){
+           		$nomeja = $this->session->userdata('nomeja');
+  				redirect('index.php/login/logout/'.$nomeja);
+        	}
+        	// if ($session['status'] == 'Payment') {
+	  		// 	$nomeja = $this->session->userdata('nomeja');
+	  		// 	redirect('login/logout/'.$nomeja);
+	  		// }else 
+	  		if($session['status'] == 'Cleaning'){
+	  			$nomeja = $this->session->userdata('nomeja');
+	  			redirect('index.php/login/logout/'.$nomeja);
+	  		}
+	  		if($session['id_table'] != $this->session->userdata('nomeja')){
+	  			$nomeja = $this->session->userdata('nomeja');
+	  			redirect('index.php/login/log_out/'.$nomeja);
+	  		}
 			
 		}
 	public function testing()
@@ -62,6 +62,9 @@ function __construct()
 	public function home($nomeja=NULL,$cek=NULL,$sub=NULL,$no=NULL)
 	{
 		$id_customer = $this->session->userdata('id');
+		$id_trans = $this->db->get_Where('sh_t_transactions', array('id_customer'=> $id_customer))->row('id');
+		$dd = ['id_trans' => intval($id_trans)];
+		$this->session->set_userdata($dd);
 		$cc = $this->Item_model->cekcartbayar($id_customer)->result();
 		if ($cc) {
 			$data = ['status' => 'Billing'];
@@ -305,7 +308,7 @@ function __construct()
 				'sort_id' => $n,
 				'as_take_away' => 0,
 				'qty_take_away' => 0,
-				'extra_notes' => $pesan[$i].','.$pesandua[$i].','.$pesantiga[$i],
+				'extra_notes' => $pesan[$i],
 				'checker_printed' => 1,
 				'created_date' => date('Y-m-d'),
 				'order_type' => $order_stat,
@@ -687,7 +690,8 @@ for ($i = 0; $i < count($cekdata); $i++) {
 		    'is_paket' => $is_paket,
 		    'id_customer' => $id_customer,
 		);
-        $successUrl = "http://localhost:8080/SOxendit/index.php/Cart/sukses/".$nomeja.'?'.http_build_query($dataArray);
+        $successUrl = base_url()."index.php/Cart/sukses/".$nomeja.'?'.http_build_query($dataArray);
+        $sukses = base_url()."index.php/Cart/webhook";
         // Ganti dengan kunci API Xendit Anda
         Xendit::setApiKey('xnd_development_MHFonfxW3xEdU1wQTfaMT8epmrJgdZqq0OSO47d91B1CO8LflPMc1cmF6KhphW');
 
@@ -695,25 +699,32 @@ for ($i = 0; $i < count($cekdata); $i++) {
             "external_id" => $extId,
             "description" => $description,
             "amount" => $amount,
-
             "success_redirect_url"=> $successUrl,
             // redirect url if the payment is failed
-            "failure_redirect_url"=> "http://localhost:8080/SOxendit/index.php/Cart/gagal/".$nomeja,
+            "failure_redirect_url"=> $id_trans->id,
         ];
-        // var_dump($amount);exit();
-
+        
+        // $invoice = \Xendit\Invoice::create($params);
+        // echo json_encode(['data' => $invoice['invoice_url']]);
         try {
-            $invoice = \Xendit\Invoice::create($params);
-            
-            redirect($invoice['invoice_url']);
-        } catch (\Exception $e) {
-            // Tangani kesalahan jika terjadi
-            echo 'Error: ' . $e->getMessage();
-        }
+	        $invoice = \Xendit\Invoice::create($params);
+	        
+	        // Ganti ini dengan pengiriman URL sebagai tanggapan
+	        redirect($invoice['invoice_url']);
+	    } catch (\Exception $e) {
+	        // Tangani kesalahan jika terjadi
+	        echo 'Error: ' . $e->getMessage();
+	    }
     }
     public function sukses($nomeja,$cek=NULL,$sub=NULL,$no=NULL)
     {
     	$table = $this->session->userdata('nomeja');
+    	$external_id = $this->input->get('external_id');
+		$descriptionpay = $this->input->get('descriptionpay');
+		$amount = $this->input->get('amount');
+		$id_trans = $this->input->get('id_trans');
+		$json_data = json_encode(array('external_id' => $external_id, 'description' => $descriptionpay,'amount' => $amount,'Status' => 'Sukses'));
+		
 		$qty = $this->input->get('qty');
 		$ata = $this->input->get('cek');
 		$qta = $this->input->get('qta');
@@ -841,7 +852,7 @@ for ($i = 0; $i < count($cekdata); $i++) {
 				'sort_id' => $n,
 				'as_take_away' => 0,
 				'qty_take_away' => 0,
-				'extra_notes' => $pesan[$i].','.$pesandua[$i].','.$pesantiga[$i],
+				'extra_notes' => $pesan[$i],
 				'checker_printed' => 1,
 				'created_date' => date('Y-m-d H:i:s'),
 				'order_type' => $order_stat,
@@ -955,8 +966,9 @@ for ($i = 0; $i < count($cekdata); $i++) {
 
     		
     			$this->db->query("update sh_t_transactions set date_order_menu='".date('Y-m-d H:i:s')."',is_order_menu_active=1,start_time_order='".date('H:i:s')."',checker_printed = 1 where id = '".$id_trans->id."' and id_customer = '".$ic."'");
-    			$this->session->set_flashdata('success','Payment Successful, Order Sent to Kitchen');
-				redirect('index.php/selforder/home/'.$table);
+    			$this->session->set_flashdata('success','Payment Successful.Please Export the PDF to Continue the Ordering Process.');
+				// redirect('index.php/selforder/home/'.$table);
+				redirect('index.php/selforder/viewpdf/');
 				// $where = array('qty' => 0);
 				// $this->Item_model->hapus_qty($where,'testing');
 			}else{
@@ -1109,7 +1121,7 @@ for ($i = 0; $i < count($cekdata); $i++) {
 				'sort_id' => $n,
 				'as_take_away' => 0,
 				'qty_take_away' => 0,
-				'extra_notes' => $pesan[$i].','.$pesandua[$i].','.$pesantiga[$i],
+				'extra_notes' => $pesan[$i],
 				'checker_printed' => 1,
 				'created_date' => date('Y-m-d H:i:s'),
 				'order_type' => $order_stat,
@@ -1196,7 +1208,7 @@ for ($i = 0; $i < count($cekdata); $i++) {
 						'seat_id' => 0,
 						'sort_id' => $n,
 						'as_take_away' => 0,
-						'extra_notes' => $pesan[$i].','.$pesandua[$i].','.$pesantiga[$i],
+						'extra_notes' => $pesan[$i],
 						'checker_printed' => 1,
 						'created_date' => date('Y-m-d H:i:s'),
 					   ];
@@ -1231,7 +1243,7 @@ for ($i = 0; $i < count($cekdata); $i++) {
 						'seat_id' => 0,
 						'sort_id' => $n,
 						'as_take_away' => 0,
-						'extra_notes' => $pesan[$i].','.$pesandua[$i].','.$pesantiga[$i],
+						'extra_notes' => $pesan[$i],
 						'checker_printed' => 1,
 						'created_date' => date('Y-m-d H:i:s'),
 					   ];
@@ -1466,7 +1478,7 @@ for ($i = 0; $i < count($cekdata); $i++) {
 				'sort_id' => $n,
 				'as_take_away' => 0,
 				'qty_take_away' => 0,
-				'extra_notes' => $pesan[$i].','.$pesandua[$i].','.$pesantiga[$i],
+				'extra_notes' => $pesan[$i],
 				'checker_printed' => 1,
 				'created_date' => date('Y-m-d H:i:s'),
 				'order_type' => $order_stat,
@@ -1687,45 +1699,45 @@ for ($i = 0; $i < count($cekdata); $i++) {
 		$check_promo = $this->Item_model->get_promo($today)->num_rows();
 		$get_promo = $this->Item_model->get_promo($today)->row_array();
 		$discount = 0;
-		// if($check_promo > 0){
-		// 	$item_check = $this->Item_model->get_info_item($this->input->post('item_code'),$get_promo)->num_rows();
-		// 	if($item_check > 0){
-		// 		$item_data = $this->Item_model->get_info_item($this->input->post('item_code'),$get_promo)->row_array();
-		// 		if($get_promo["promo_type"] == 'Discount'){
-		// 			if($get_promo["promo_criteria"] == 'Weekday'){ //Weekday
-		// 				if($cekWeekEnd !== "Sat" || $cekWeekEnd !== "Sun" || $cekWeekEnd !== "Sab" || $cekWeekEnd !== "Min"){
-		// 					if($curTime[0] >= $get_promo["promo_from"] && $curTime[0] <= $get_promo["promo_to"]){
-		// 						$discount = $get_promo["promo_value"];		
-		// 					}else{
-		// 						$discount = 0;
-		// 					}
-		// 				}else{
-		// 					$discount = 0;
-		// 				}	
-		// 			}else if($get_promo["promo_criteria"] == 'Weekend'){ //Weekend
-		// 				if($cekWeekEnd === "Sat" || $cekWeekEnd === "Sun" || $cekWeekEnd === "Sab" || $cekWeekEnd === "Min"){
-		// 					if($curTime[0] >= $get_promo["promo_from"] && $curTime[0] <= $get_promo["promo_to"]){
-		// 						$discount = $get_promo["promo_value"];		
-		// 					}else{
-		// 						$discount = 0;
-		// 					}
-		// 				}else{
-		// 					$discount = 0;
-		// 				}	
-		// 			}else{ //Full Week
-		// 				if($curTime[0] >= $get_promo["promo_from"] && $curTime[0] <= $get_promo["promo_to"]){
-		// 					$discount = $get_promo["promo_value"];		
-		// 				}else{
-		// 					$discount = 0;
-		// 				}
-		// 			}
-		// 		}else{
-		// 			$discount = 0;	
-		// 		}
-		// 	}else{
-		// 		$discount = 0;
-		// 	}
-		// }
+		if($check_promo > 0){
+			$item_check = $this->Item_model->get_info_item($this->input->post('item_code'),$get_promo)->num_rows();
+			if($item_check > 0){
+				$item_data = $this->Item_model->get_info_item($this->input->post('item_code'),$get_promo)->row_array();
+				if($get_promo["promo_type"] == 'Discount'){
+					if($get_promo["promo_criteria"] == 'Weekday'){ //Weekday
+						if($cekWeekEnd !== "Sat" || $cekWeekEnd !== "Sun" || $cekWeekEnd !== "Sab" || $cekWeekEnd !== "Min"){
+							if($curTime[0] >= $get_promo["promo_from"] && $curTime[0] <= $get_promo["promo_to"]){
+								$discount = $get_promo["promo_value"];		
+							}else{
+								$discount = 0;
+							}
+						}else{
+							$discount = 0;
+						}	
+					}else if($get_promo["promo_criteria"] == 'Weekend'){ //Weekend
+						if($cekWeekEnd === "Sat" || $cekWeekEnd === "Sun" || $cekWeekEnd === "Sab" || $cekWeekEnd === "Min"){
+							if($curTime[0] >= $get_promo["promo_from"] && $curTime[0] <= $get_promo["promo_to"]){
+								$discount = $get_promo["promo_value"];		
+							}else{
+								$discount = 0;
+							}
+						}else{
+							$discount = 0;
+						}	
+					}else{ //Full Week
+						if($curTime[0] >= $get_promo["promo_from"] && $curTime[0] <= $get_promo["promo_to"]){
+							$discount = $get_promo["promo_value"];		
+						}else{
+							$discount = 0;
+						}
+					}
+				}else{
+					$discount = 0;	
+				}
+			}else{
+				$discount = 0;
+			}
+		}
     	// Ambil data dari tabel A
     	$id_customer = $this->session->userdata('id');
 		$id_trans = $this->db->get_Where('sh_t_transactions', array('id_customer'=> $id_customer))->row('id');
@@ -1803,7 +1815,10 @@ for ($i = 0; $i < count($cekdata); $i++) {
 			$this->db->where('id_trans',$id_trans);
 			$this->db->delete('sh_cart');
 		}
-		$this->session->set_flashdata('successcart','Payment Successful, Order Sent to Kitchen');
-		redirect(base_url().'index.php/selforder/home/'.$nomeja);
+		// $this->session->set_flashdata('successcart','Payment Successful, Order Sent to Kitchen');
+		// redirect(base_url().'index.php/selforder/home/'.$nomeja);
+		$this->session->set_flashdata('success','Payment Successful.Please Export the PDF to Continue the Ordering Process.');
+		// redirect('index.php/selforder/home/'.$table);
+		redirect('index.php/selforder/viewpdf/bk');
     }
 }

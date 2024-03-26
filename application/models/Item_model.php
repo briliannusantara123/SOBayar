@@ -848,6 +848,8 @@ public function get_info_item($item_code, $data)
    		{
    			// print_r($date);die();
    			$sql = "select R.*,C.customer_name from sh_rel_table R inner join sh_m_customer C on C.id = R.id_customer where R.id_table = '$nomeja' and left(C.create_date,10) = left(sysdate(),10) and R.status in ('Order','Dining','Billing','Payment') limit 1";
+   			// $cek = $this->db->query($sql)->result();
+   			// var_dump($cek);exit();
 	        return $this->db->query($sql);
    		}
    		public function order_bill($cabang,$notrans)
@@ -898,6 +900,48 @@ public function order_bill_line($cabang,$notrans)
 					  inner join sh_t_transactions b on a.id_trans = b.id 
 					  inner join sh_m_customer c on c.id = b.id_customer where a.is_cancel = 0 and b.cabang = ".$cabang." and b.id= ".$notrans." group by a.item_code,a.id_trans order by a.id asc";
 	return $this->db->query($query)->result();
+}
+public function order_bill_line_pdf($cabang,$notrans) 
+{
+	$q = "select * from sh_t_transaction_details a 
+					  inner join sh_t_transactions b on a.id_trans = b.id 
+					  inner join sh_m_customer c on c.id = b.id_customer where a.is_cancel = 0 and b.cabang = ".$cabang." and b.id= ".$notrans." group by a.item_code,a.id_trans order by a.id desc LIMIT 1";
+	$get = $this->db->query($q)->row();	  
+	$query = "select a.id,a.item_code,sum(a.qty) as qty,a.disc, a.description, case when a.unit_price > 0 then a.unit_price else 'FREE' end as unit_price, case when (sum(a.qty*a.unit_price) - sum(a.qty*a.unit_price * (a.disc/100))) > 0 then (sum(a.qty*a.unit_price) - sum(a.qty*a.unit_price * (a.disc/100))) else 'FREE' end as sub_total 
+					  from sh_t_transaction_details a 
+					  inner join sh_t_transactions b on a.id_trans = b.id 
+					  inner join sh_m_customer c on c.id = b.id_customer where a.is_cancel = 0 and b.cabang = ".$cabang." and a.cekdata = ".$get->cekdata." and b.id= ".$notrans." group by a.item_code,a.id_trans order by a.id asc";
+	return $this->db->query($query)->result();
+}
+public function order_bill_pdf($cabang,$notrans)
+{
+	//get setup
+	$qr = "select * from sh_t_transaction_details a 
+					  inner join sh_t_transactions b on a.id_trans = b.id 
+					  inner join sh_m_customer c on c.id = b.id_customer where a.is_cancel = 0 and b.cabang = ".$cabang." and b.id= ".$notrans." group by a.item_code,a.id_trans order by a.id desc LIMIT 1";
+	$get = $this->db->query($qr)->row();
+
+	$q = "select * from sh_m_setup ";
+	$setup = $this->db->query($q)->row();
+	$scP = $setup->sc_percent;
+	$taxP = $setup->tax_percent;
+	//get setup
+	$query = "select c.customer_name, a.id_trans, c.total_pax as totalpax_reservasi, (select count(t.seat_id) as ttl from (select d.seat_id from sh_t_transaction_details d where d.cekdata = ".$get->cekdata." and d.id_trans = ".$notrans." group by d.selected_table_no,d.seat_id) as t) as totalpax_actual, (select (sum(d.unit_price * d.qty) - sum(d.unit_price * d.qty * (d.disc/100))) as total from sh_t_transaction_details d where d.is_cancel = 0 and d.id_trans = ".$notrans." and d.cekdata = ".$get->cekdata." group by d.id_trans) as total, ((select (sum(d.unit_price * d.qty) - sum(d.unit_price * d.qty * (d.disc/100))) as total from sh_t_transaction_details d where d.is_cancel = 0 and d.id_trans = ".$notrans." and d.cekdata = ".$get->cekdata." group by d.id_trans) * (".$scP."/100)) as sc, ((((select (sum(d.unit_price * d.qty) - sum(d.unit_price * d.qty * (d.disc/100))) as total from sh_t_transaction_details d where d.is_cancel = 0 and d.id_trans = ".$notrans." and d.cekdata = ".$get->cekdata." group by d.id_trans) * (".$scP."/100)) * (".$taxP."/100)) + ((select (sum(d.unit_price * d.qty) - sum(d.unit_price * d.qty * (d.disc/100))) as total from sh_t_transaction_details d where d.is_cancel = 0 and d.id_trans = ".$notrans." and d.cekdata = ".$get->cekdata." group by d.id_trans) * (".$taxP."/100))) as ppn, (select group_concat(xx.id_table) from sh_rel_table xx inner join sh_trans_reltable strx on strx.id_rel_table = xx.id inner join sh_t_transactions tx on tx.id = strx.id_trans where tx.id = ".$notrans.") as no_table, b.bill_printed_count as print_count 
+						  from sh_t_transaction_details a inner join sh_t_transactions b on a.id_trans = b.id 
+						  inner join sh_m_customer c on c.id = b.id_customer where a.is_paid = 0 and a.is_cancel = 0 and a.cekdata = ".$get->cekdata." and b.cabang = ".$cabang." and b.id= ".$notrans." and Left(b.create_date, 10) = Left(SYSDATE(), 10) limit 1";
+	return $this->db->query($query)->row();
+}
+public function get_payment($cabang,$notrans)
+{
+	$date = date('Y-m-d');
+	$this->db->select('*');
+	$this->db->from('sh_sopayment_log');
+	$where = "LEFT(created_date, 10) = '".$date."' AND id_trans = '".$notrans."'";
+	$this->db->where($where);
+	$this->db->order_by('id','desc');
+	$this->db->limit(1);      
+	$query = $this->db->get();
+	return $query;
 }
 public function totalbayar($notrans)
 {

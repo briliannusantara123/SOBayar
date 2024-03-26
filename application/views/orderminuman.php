@@ -486,19 +486,21 @@ footer{
                 <a href="#" data-bs-toggle="modal" data-bs-target="#exampleModal<?= $i->id ?>" style="color: #223c77;font-size: 13px;text-decoration: none;"><img src="<?= $i->image_path ?>" alt="Red dot" style="width: 120px;height: 120px;border-radius: 20px;" /><br> <h5 style="font-size: 12px;">Customize</h5></a>
                 <?php else: ?>
 
-                  <h5 id="qtycart<?= $i->id ?>" class="qtycart<?= $i->id ?>" style="font-size: 12px;float: right;background-color: red;border-radius: 20px;padding: 3px;color: white;">Cart Qty 0</h5>
-                  <a href="#" data-bs-toggle="modal" data-bs-target="#exampleModal<?= $i->id ?>"><img src="<?= $i->image_path ?>" alt="Red dot" style="width: 120px;height: 120px;border-radius: 20px;" /></a>
+                  <div class="container">
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#exampleModal<?= $i->id ?>" style="position: relative; display: inline-block;">
+                      <img src="<?= $i->image_path ?>" alt="Red dot" style="width: 120px; height: 120px; border-radius: 20px;" />
+                      <h5 id="qtycart<?= $i->id ?>" class="qtycart<?= $i->id ?>" style="position: absolute; top: 10px; right: 10px; font-size: 12px; background-color: red; border-radius: 20px; padding: 3px; color: white;">Cart Qty 0</h5>
+                    </a>
+                  </div>
                 <?php endif ?>
               <?php  else: ?>
                 <?php if ($i->with_option == 1 || $i->with_option == 2 || $i->with_option == 3): ?>
                 <h5 id="qtycart<?= $i->id ?>" class="qtycart<?= $i->id ?>" style="font-size: 12px;float: right;background-color: red;border-radius: 20px;padding: 3px;color: white;">Cart Qty 0</h5>
                 <a href="#" data-bs-toggle="modal" data-bs-target="#exampleModal<?= $i->id ?>" style="color: #223c77;font-size: 13px;text-decoration: none;"><img src="<?= base_url();?>assets/logoDVLogin.png" alt="Red dot" style="width: 160px;height: 120px;border-radius: 20px;" /><br> <h5 style="font-size: 12px;">Customize</h5></a>
                 <?php else: ?>
-
-                  <h5 id="qtycart<?= $i->id ?>" class="qtycart<?= $i->id ?>" style="font-size: 12px;float: right;background-color: red;border-radius: 20px;padding: 3px;color: white;">Cart Qty 0</h5>
-                <a href="#" data-bs-toggle="modal" data-bs-target="#exampleModal<?= $i->id ?>"><img src="<?= base_url();?>assets/logoDVLogin.png" alt="Red dot" style="width: 160px;height: 120px;border-radius: 20px;" /></a>
-                <?php endif ?>
-                
+                    <h5 id="qtycart<?= $i->id ?>" class="qtycart<?= $i->id ?>" style="font-size: 12px;float: right;background-color: red;border-radius: 20px;padding: 3px;color: white;">Cart Qty 0</h5>
+                <a href="#" data-bs-toggle="modal" data-bs-target="#exampleModal<?= $i->id ?>" style="color: #223c77;font-size: 13px;text-decoration: none;"><img src="<?= base_url();?>assets/logoDVLogin.png" alt="Red dot" style="width: 160px;height: 120px;border-radius: 20px;" /><br> <h5 style="font-size: 12px;"></h5></a>
+                <?php endif; ?>
               <?php endif ?>
               <h6 style="color: #223c77;font-size: 16px;"class="text_<?= str_replace(" ","_", $i->description)?> text"><?= $i->description ?></h6>
               

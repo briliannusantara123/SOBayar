@@ -6,7 +6,7 @@ class Review extends CI_Controller {
 	{
 		parent::__construct();
 		if($this->session->userdata('username') == ""){
-            redirect('login/logout');
+            redirect('index.php/login/logout');
         }
         $this->load->model('Review_model');
         $this->load->model('Item_model');
@@ -26,7 +26,7 @@ class Review extends CI_Controller {
   		// }else 
   		if($session['status'] == 'Cleaning'){
   			$nomeja = $this->session->userdata('nomeja');
-  			redirect('login/logout/'.$nomeja);
+  			redirect('index.php/login/logout/'.$nomeja);
   		}
   		}
 	}

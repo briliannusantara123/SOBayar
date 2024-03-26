@@ -35,6 +35,7 @@ class Login extends CI_Controller
   			->row('status');
 		$nm = $this->session->userdata('nomeja');
 		$log = $this->Item_model->log($nomeja)->result();
+		
 		// if ($session == 'Payment') {
 		// 	$this->session->set_flashdata('error','Table Status Has Been Paid Can`t Access Menu Page.');
 		// 	$this->load->view('login',$data);
@@ -72,6 +73,7 @@ class Login extends CI_Controller
 		$this->db->join('sh_m_customer', 'sh_m_customer.id = sh_rel_table.id_customer');
 		$this->db->where($where);
 		$log = $this->db->get()->row_array();
+		// var_dump($log);exit();
 		// $user = $this->db->get_where('sh_m_customer',['passcode' => $passcode,'left(create_date,10) = ' => $date])->row_array();
 		// // var_dump($user);exit();
 		
